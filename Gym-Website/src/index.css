@@ -1,0 +1,14 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer components {
+  .link {
+    @apply cursor-pointer hover:underline;
+  }
+  .button-outline {
+    @apply rounded-md border-2 border-[#fe9808] hover:bg-[#fe9808]/80 hover:text-black duration-500 py-2 px-6 text-[#fe9808] tracking-wider;
+  }
+  .primary-btn {
+    @apply inline-block rounded-md bg-[#fe9808] hover:bg-[#fe9808]/80 transition duration-500 py-2 px-6 text-white;
+  }
+}
