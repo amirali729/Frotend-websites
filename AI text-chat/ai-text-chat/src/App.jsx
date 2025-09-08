@@ -1,10 +1,8 @@
-// src/App.jsx
 import { useState, useEffect, useRef } from "react";
 import models from "./model.json";
 
 function App() {
-  // renamed state to plural to avoid shadowing with local vars
-  const [messages, setMessages] = useState([]); // { content, isUser, id }
+  const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState("");
   const [isAiReady, setIsAiReady] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -12,7 +10,6 @@ function App() {
 
   const messageEndRef = useRef(null);
 
-  // Poll for puter.ai.chat being available
   useEffect(() => {
     const checkReady = setInterval(() => {
       if (window.puter?.ai?.chat) {
@@ -20,11 +17,9 @@ function App() {
         clearInterval(checkReady);
       }
     }, 300);
-
     return () => clearInterval(checkReady);
   }, []);
 
-  // scroll to bottom when messages change
   useEffect(() => {
     messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -33,7 +28,6 @@ function App() {
     setMessages((prev) => [...prev, { content, isUser, id: Date.now() }]);
   };
 
-  // keyboard handler for Enter (send) — prevents shift+enter allowing newlines
   const handleKey = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -41,7 +35,6 @@ function App() {
     }
   };
 
-  // model selection handler
   const selectModel = (e) => {
     const newModelId = e.target.value;
     setAiModel(newModelId);
@@ -49,39 +42,30 @@ function App() {
     addMessage(`Switched to ${modelObj.name} (${modelObj.provider})`, false);
   };
 
-  // compute currently selected model object for UI
   const currentModel = models.find((m) => m.id === aiModel) || models[0];
 
-  // send message to Puter
   const sendMessage = async () => {
     const text = inputValue.trim();
     if (!text || !isAiReady || isLoading) return;
 
-    // add user message locally
     addMessage(text, true);
     setInputValue("");
     setIsLoading(true);
 
     try {
-      // build conversation using messages state (previous messages) and system prompt
       const conversation = [
         { role: "system", content: "You are a helpful assistant." },
-        // map existing messages state to role/content
         ...messages.map((m) => ({
           role: m.isUser ? "user" : "assistant",
           content: m.content,
         })),
-        // current user message
         { role: "user", content: text },
       ];
 
-      // call Puter chat
       const response = await window.puter.ai.chat(conversation, {
         model: aiModel,
-        // if you want streaming: stream: true and then for-await-of handle partials
       });
 
-      // normalize reply
       const reply =
         typeof response === "string"
           ? response
@@ -97,36 +81,39 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-950/100 via-neutral-950 to-amber-950 flex flex-col items-center justify-center p-4 gap-8">
-      <h1 className="sm:text-7xl text-6xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 bg-clip-text text-transparent text-center ">
-        Multi-Model AI Chat App 
-      </h1>
+    <div className="min-h-screen flex flex-col items-center bg-gradient-to-br from-gray-950 via-gray-900 to-black text-white">
+      {/* Header */}
+      <header className="w-full max-w-5xl px-4 py-6 text-center">
+        <h1 className="text-3xl sm:text-5xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400 bg-clip-text text-transparent">
+          Multi-Model AI Chat
+        </h1>
+        <p className="mt-2 text-gray-400 text-sm sm:text-base">
+          Switch models and chat in real-time
+        </p>
+      </header>
 
-      <div className="flex flex-col sm:flex-row gap-4 items-center">
+      {/* Model & Status */}
+      <div className="flex flex-col sm:flex-row gap-3 items-center w-full max-w-3xl px-4 mb-4">
         <div
-          className={`px-4 py-2 rounded-full text-sm ${
+          className={`px-4 py-2 rounded-full text-xs sm:text-sm font-medium backdrop-blur-lg ${
             isAiReady
-              ? "bg-green-500/20 border border-green-500/30 text-green-300"
-              : "bg-yellow-500/20 border border-yellow-500/30 text-yellow-300"
+              ? "bg-green-500/20 border border-green-500/40 text-green-300"
+              : "bg-yellow-500/20 border border-yellow-500/40 text-yellow-300"
           }`}
         >
-          {isAiReady ? "AI ready" : "waiting for AI..."}
+          {isAiReady ? "AI Ready" : "Connecting..."}
         </div>
 
-        <div className="flex items-center gap-4">
-          <span className="text-gray-300 text-sm">Model: </span>
+        <div className="flex items-center gap-2 sm:ml-auto">
+          <label className="text-gray-300 text-xs sm:text-sm">Model:</label>
           <select
             value={aiModel}
             onChange={selectModel}
             disabled={!isAiReady}
-            className="bg-orange-950/80 border border-orange-500/30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="bg-gray-800/70 border border-gray-700 rounded-lg px-3 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
           >
             {models.map((model) => (
-              <option
-                key={model.id}
-                value={model.id}
-                className="bg-amber-950 open:border-0"
-              >
+              <option key={model.id} value={model.id}>
                 {model.name} ({model.provider})
               </option>
             ))}
@@ -134,49 +121,47 @@ function App() {
         </div>
       </div>
 
-      <div className="w-full max-w-2xl rounded-3xl p-6 bg-gradient-to-br from-orange-950/90 to-orange-950 backdrop:blur-md border border-orange-800/50">
-        <div className="flex items-center justify-center mb-2 p-2 bg-gradient-to-r from-orange-600/20 to-orange-500/20 rounded-xl border border-orange-500/30">
-          <span className="text-orange-300 text-sm font-medium">
-            currently using : {currentModel.name} ({currentModel.provider})
-          </span>
-        </div>
-
-        <div className="h-96 overflow-y-auto border-b mb-6 p-4 bg-gradient-to-b from-gray-900/50 to-gray-800/50 rounded-2xl border-gray-600">
+      {/* Chat window */}
+      <main className="flex-1 w-full max-w-3xl px-4">
+        <div className="h-[70vh] sm:h-[65vh] overflow-y-auto rounded-2xl bg-gray-900/60 backdrop-blur-lg border border-gray-800 p-4 flex flex-col">
           {messages.length === 0 && (
-            <div className="text-center mt-20 text-gray-400">
-              Start the conversation by typing
-              <br />
-              <span className="block text-gray-500 mt-2 text-xs">
-                Try different models to see how they respond
-              </span>
+            <div className="m-auto text-center text-gray-400">
+              <p className="text-sm sm:text-base">
+                Start chatting with <span className="text-purple-400">{currentModel.name}</span>
+              </p>
+              <p className="text-xs sm:text-sm mt-1 text-gray-500">
+                Try switching models to compare answers
+              </p>
             </div>
           )}
 
           {messages.map((msg) => (
             <div
               key={msg.id}
-              className={`p-3 m-2 rounded-2xl w-fit text-wrap max-w-[80%] ${
+              className={`max-w-[80%] sm:max-w-[70%] p-3 mb-3 rounded-2xl shadow-md ${
                 msg.isUser
-                  ? "ml-auto text-white bg-gradient-to-r from-orange-500 to-red-500"
-                  : "text-white bg-gradient-to-r from-amber-600 to-orange-600"
+                  ? "ml-auto bg-gradient-to-r from-purple-500 to-pink-500 text-white"
+                  : "mr-auto bg-gray-800/80 text-gray-100"
               }`}
             >
-              <div className="whitespace-pre-wrap">{msg.content}</div>
+              <p className="whitespace-pre-wrap text-sm sm:text-base">
+                {msg.content}
+              </p>
             </div>
           ))}
 
           {isLoading && (
-            <div className="p-3 m-2 rounded-2xl max-w-xs bg-gradient-to-r from-amber-600 to-red-600">
-              <div className="flex items-center gap-2">
-                <div className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
-                {currentModel.name} is thinking...
-              </div>
+            <div className="mr-auto p-3 mb-3 rounded-2xl bg-gray-700/70 text-gray-200 text-sm flex items-center gap-2">
+              <div className="w-3 h-3 border-2 border-gray-400 border-t-white rounded-full animate-spin" />
+              {currentModel.name} is thinking...
             </div>
           )}
-
           <div ref={messageEndRef} />
         </div>
+      </main>
 
+      {/* Input area */}
+      <footer className="w-full max-w-3xl px-4 mt-4 mb-6">
         <div className="flex flex-col sm:flex-row gap-3">
           <input
             type="text"
@@ -184,28 +169,22 @@ function App() {
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKey}
             placeholder={
-              isAiReady ? `Ask ${currentModel.name} anything...` : "waiting AI to be ready"
+              isAiReady
+                ? `Ask ${currentModel.name}...`
+                : "Waiting for AI to connect..."
             }
             disabled={!isAiReady || isLoading}
-            className="flex-1 px-4 py-3 bg-yellow-300/30 border border-amber-800 text-white placeholder:bg-gray-400 rounded-2xl focus:outline-none focus:ring-2 focus:shadow-2xl focus:shadow-amber-900/30 focus:ring-orange-500 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-4 py-3 rounded-xl bg-gray-800/80 border border-gray-700 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
           />
-
           <button
             onClick={sendMessage}
             disabled={!isAiReady || isLoading || !inputValue.trim()}
-            className="px-6 py-3 font-semibold text-white hover:opacity-80 rounded-2xl bg-gradient-to-r from-orange-500 to-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 py-3 rounded-xl font-medium bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm sm:text-base hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading ? (
-              <div className="flex items-center gap-2">
-                <div className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
-                sending
-              </div>
-            ) : (
-              "send"
-            )}
+            {isLoading ? "Sending..." : "Send"}
           </button>
         </div>
-      </div>
+      </footer>
     </div>
   );
 }
